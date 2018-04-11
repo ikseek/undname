@@ -29,3 +29,11 @@ class UndnameTests(unittest.TestCase):
     def test_raises_on_error(self):
         with self.assertRaises(UndnameFailure):
             undname("?")
+
+    def test_name_only_no_ms_keywords(self):
+        res = undname(
+            "??B?$PPtr@VLevelGameManager@@@@QEBAPEAVLevelGameManager@@XZ",
+            name_only=True, ms_keywords=False)
+
+        self.assertEqual("PPtr<LevelGameManager>::operator LevelGameManager *",
+                         res)
