@@ -1,5 +1,5 @@
 import unittest
-from undname import undname, UndnameFailure, UNDNAME_COMPLETE
+from undname import undname, UndnameFailure
 
 
 class UndnameTests(unittest.TestCase):
@@ -15,13 +15,13 @@ class UndnameTests(unittest.TestCase):
         self.assertEqual("main", res)
 
     def test_mangled_complete(self):
-        res = undname("?xyz@?$abc@V?$def@H@@PAX@@YAXXZ", UNDNAME_COMPLETE)
+        res = undname("?xyz@?$abc@V?$def@H@@PAX@@YAXXZ")
 
         self.assertEqual(
             "void __cdecl abc<class def<int>,void *>::xyz(void)", res)
 
     def test_mangled_name_only(self):
-        res = undname("?xyz@?$abc@V?$def@H@@PAX@@YAXXZ")
+        res = undname("?xyz@?$abc@V?$def@H@@PAX@@YAXXZ", name_only=True)
 
         self.assertEqual(
             "abc<def<int>,void *>::xyz", res)
