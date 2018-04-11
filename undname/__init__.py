@@ -2,34 +2,36 @@ import threading
 
 from ._undname import ffi, lib
 
-UNDNAME_COMPLETE = 0x0000
-UNDNAME_NO_LEADING_UNDERSCORES = 0x0001  # Don't show __ in calling convention
-UNDNAME_NO_MS_KEYWORDS = 0x0002  # Don't show calling convention at all
-UNDNAME_NO_FUNCTION_RETURNS = 0x0004  # Don't show function/method return value
-UNDNAME_NO_ALLOCATION_MODEL = 0x0008  #
-UNDNAME_NO_ALLOCATION_LANGUAGE = 0x0010  #
-UNDNAME_NO_MS_THISTYPE = 0x0020  #
-UNDNAME_NO_CV_THISTYPE = 0x0040  #
-UNDNAME_NO_THISTYPE = 0x0060  #
-UNDNAME_NO_ACCESS_SPECIFIERS = 0x0080  # Don't show access specifier (public/protected/private)
-UNDNAME_NO_THROW_SIGNATURES = 0x0100  #
-UNDNAME_NO_MEMBER_TYPE = 0x0200  # Don't show static/virtual specifier
-UNDNAME_NO_RETURN_UDT_MODEL = 0x0400  #
-UNDNAME_32_BIT_DECODE = 0x0800  #
-UNDNAME_NAME_ONLY = 0x1000  # Only report the variable/method name
-UNDNAME_NO_ARGUMENTS = 0x2000  # Don't show method arguments
-UNDNAME_NO_SPECIAL_SYMS = 0x4000  #
-UNDNAME_NO_COMPLEX_TYPE = 0x8000  #
+_flag_values = {
+    "leading_underscores": 0x0001,
+    "ms_keywords": 0x0002,
+    "function_returns": 0x0004,
+    "allocation_language": 0x0010,
+    "thistype": 0x0060,
+    "access_specifiers": 0x0080,
+    "member_type": 0x0200,
+    "name_only": 0x1000,
+    "arguments": 0x2000,
+    "complex_type": 0x8000
+}
 
 
 class UndnameFailure(Exception):
     pass
 
 
-def undname(mangled, flags=UNDNAME_NAME_ONLY):
+def undname(mangled, name_only=False, leading_underscores=True,
+            ms_keywords=True, function_returns=True, allocation_language=True,
+            thistype=True, access_specifiers=True, member_type=True,
+            arguments=True, complex_type=True):
+    args = locals()
+    if args.pop('name_only'):
+        no_flags = _flag_values['name_only']
+    else:
+        no_flags = sum(_flag_values[k] for k, v in args.items() if v is False)
     _thread_local.error_messages = []
     try:
-        result = lib.undname(mangled.encode('ascii'), flags)
+        result = lib.undname(mangled.encode('ascii'), no_flags)
         if _thread_local.error_messages:
             raise UndnameFailure(", ".join(_thread_local.error_messages))
         else:
