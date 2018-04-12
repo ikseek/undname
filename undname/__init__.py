@@ -32,22 +32,27 @@ def undname(mangled, name_only=False, leading_underscores=True,
         flags += 0x2000
     if not complex_type:
         flags += 0x8000
-    _thread_local.error_messages = []
+    _thread_local.undname_exc = None
     try:
         result = lib.undname(mangled.encode('ascii'), flags)
-        if _thread_local.error_messages:
-            raise UndnameFailure(", ".join(_thread_local.error_messages))
+        if _thread_local.undname_exc:
+            exc, _thread_local.undname_exc = _thread_local.undname_exc, None
+            raise exc
         else:
-            demangled = ffi.string(result).decode('ascii')
-            return demangled
+            return ffi.string(result).decode('ascii')
     finally:
         lib.free(result)
 
 
-@ffi.def_extern()
+def onerror(exception, exc_value, traceback):
+    if not _thread_local.undname_exc:
+        _thread_local.undname_exc = exc_value.with_traceback(traceback)
+
+
+@ffi.def_extern(onerror=onerror)
 def error_message(severity, text):
     if severity < 2:
-        _thread_local.error_messages.append(ffi.string(text).decode('ascii'))
+        raise UndnameFailure(ffi.string(text).decode('ascii'))
 
 
 _thread_local = threading.local()
