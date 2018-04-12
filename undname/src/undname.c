@@ -173,6 +173,10 @@ static BOOL str_array_push(struct parsed_symbol* sym, const char* ptr, int len,
     assert(ptr);
     assert(a);
 
+    if (!ptr)
+    {
+        return FALSE;
+    }
     if (!a->alloc)
     {
         new = und_alloc(sym, (a->alloc = 32) * sizeof(a->elts[0]));
