@@ -37,3 +37,10 @@ class UndnameTests(unittest.TestCase):
 
         self.assertEqual("PPtr<LevelGameManager>::operator LevelGameManager *",
                          res)
+
+    def test_function_in_anonymous_namespace(self):
+        res = undname("?ThreadFunc@?A0x6a578590@base@@YAKPEAX@Z", ms_keywords=False)
+
+        self.assertEqual(
+            "unsigned long base::`anonymous namespace'::ThreadFunc(void *)",
+            res)
