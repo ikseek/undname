@@ -401,6 +401,8 @@ static char* get_args(struct parsed_symbol* sym, struct array* pmt_ref, BOOL z_t
     return args_str;
 }
 
+static char* get_class_name(struct parsed_symbol* sym);
+
 /******************************************************************
  *		get_modifier
  * Parses the type modifier. Always returns static strings.
@@ -428,6 +430,10 @@ static BOOL get_modifier(struct parsed_symbol *sym, const char **ret, const char
     case 'B': *ret = "const"; break;
     case 'C': *ret = "volatile"; break;
     case 'D': *ret = "const volatile"; break;
+    case 'Q': *ret = str_printf(sym, "%s::", get_class_name(sym)); break;
+    case 'R': *ret = str_printf(sym, "const %s::", get_class_name(sym)); break;
+    case 'S': *ret = str_printf(sym, "volatile %s::", get_class_name(sym)); break;
+    case 'T': *ret = str_printf(sym, "const volatile %s::", get_class_name(sym)); break;
     default: return FALSE;
     }
     return TRUE;
@@ -623,6 +629,11 @@ static BOOL get_class(struct parsed_symbol* sym)
                 }
                 break;
             default:
+                if (*sym->current == 'A') {
+                    get_literal_string(sym);
+                    name = str_printf(sym, "`anonymous namespace'");
+                    break;
+                }
                 if (!(name = get_number( sym ))) return FALSE;
                 name = str_printf( sym, "`%s'", name );
                 break;
@@ -1039,11 +1050,41 @@ static BOOL demangle_datatype(struct parsed_symbol* sym, struct datatype_t* ct,
                 if (!demangle_datatype(sym, ct, pmt_ref, in_args)) goto done;
                 ct->left = str_printf(sym, "%s %s", ct->left, ptr);
             }
+            else if (*sym->current == 'A' && sym->current[1] == '6')
+            {
+                /* $$A6 = Function type (non-pointer) */
+
+                char*                   args = NULL;
+                const char*             call_conv;
+                const char*             exported;
+                struct datatype_t       sub_ct;
+                unsigned                mark = sym->stack.num;
+
+                sym->current += 2;
+
+                if (!get_calling_convention(*sym->current++,
+                                            &call_conv, &exported,
+                                            sym->flags & ~UNDNAME_NO_ALLOCATION_LANGUAGE) ||
+                    !demangle_datatype(sym, &sub_ct, pmt_ref, FALSE))
+                    goto done;
+
+                args = get_args(sym, pmt_ref, TRUE, '(', ')');
+                if (!args) goto done;
+                sym->stack.num = mark;
+
+                ct->left  = str_printf(sym, "%s%s %s",
+                                       sub_ct.left, sub_ct.right, call_conv);
+                ct->right = str_printf(sym, "%s", args);
+            }
             break;
         }
         break;
     default :
-        ERR("Unknown type %c\n", dt);
+        /* MSVC can intentionally generate symbols that look like
+           <prefix>@<hex digits>, which the native undname cannot
+           demangle either. Don't report an error in this case. */
+        if (dt < 'a' || dt > 'f')
+            ERR("Unknown type %c\n", dt);
         break;
     }
     if (add_pmt && pmt_ref && in_args)
@@ -1351,6 +1392,7 @@ static BOOL symbol_demangle(struct parsed_symbol* sym)
     BOOL                ret = FALSE;
     unsigned            do_after = 0;
     static CHAR         dashed_null[] = "--null--";
+    const char*         template_args = NULL;
 
     /* FIXME seems wrong as name, as it demangles a simple data type */
     if (sym->flags & UNDNAME_NO_ARGUMENTS)
@@ -1373,10 +1415,12 @@ static BOOL symbol_demangle(struct parsed_symbol* sym)
     if (*sym->current == '?' && (sym->current[1] != '$' || sym->current[2] == '?'))
     {
         const char* function_name = NULL;
+        BOOL is_template = FALSE;
 
         if (sym->current[1] == '$')
         {
             do_after = 6;
+            is_template = TRUE;
             sym->current += 2;
         }
 
@@ -1493,6 +1537,84 @@ static BOOL symbol_demangle(struct parsed_symbol* sym)
             case 'V': function_name = "operator delete[]"; break;
             case 'X': function_name = "`placement delete closure'"; break;
             case 'Y': function_name = "`placement delete[] closure'"; break;
+            case '_':
+                switch (*++sym->current)
+                {
+                case 'E':
+                    {
+                        const char* result = NULL;
+
+                        if (*++sym->current == '?')
+                        {
+                            struct array stack = sym->stack;
+                            unsigned int start = sym->names.start;
+                            unsigned int num = sym->names.num;
+
+                            str_array_init( &sym->stack );
+                            if (symbol_demangle( sym )) result = sym->result;
+                            if (*sym->current != '@') result = NULL;
+
+                            sym->names.start = start;
+                            sym->names.num = num;
+                            sym->stack = stack;
+                        }
+                        else
+                        {
+                            result = get_literal_string(sym);
+                            --sym->current;
+                        }
+
+                        if (result)
+                        {
+                            function_name = str_printf(sym, "`dynamic initializer for '%s''", result);
+                        }
+                        else
+                        {
+                            ERR("Invalid operator: __E\n");
+                            return FALSE;
+                        }
+                    }
+                    break;
+                case 'F':
+                    {
+                        const char* result = NULL;
+
+                        if (*++sym->current == '?')
+                        {
+                            struct array stack = sym->stack;
+                            unsigned int start = sym->names.start;
+                            unsigned int num = sym->names.num;
+
+                            str_array_init( &sym->stack );
+                            if (symbol_demangle( sym )) result = sym->result;
+                            if (*sym->current != '@') result = NULL;
+
+                            sym->names.start = start;
+                            sym->names.num = num;
+                            sym->stack = stack;
+                        }
+                        else
+                        {
+                            result = get_literal_string(sym);
+                            --sym->current;
+                        }
+
+                        if (result)
+                        {
+                            function_name = str_printf(sym, "`dynamic atexit destructor for '%s''", result);
+                        }
+                        else
+                        {
+                            ERR("Invalid operator: __F\n");
+                            return FALSE;
+                        }
+                    }
+                    break;
+                default:
+                    ERR("Unknown operator: __%c\n", *sym->current);
+                    return FALSE;
+                }
+                break;
             default:
                 ERR("Unknown operator: _%c\n", *sym->current);
                 return FALSE;
@@ -1509,6 +1631,15 @@ static BOOL symbol_demangle(struct parsed_symbol* sym)
         case 1: case 2:
             if (!str_array_push(sym, dashed_null, -1, &sym->stack))
                 return FALSE;
+            if (is_template)
+            {
+                char *args;
+                struct array array_pmt;
+
+                str_array_init(&array_pmt);
+                template_args = get_args(sym, &array_pmt, FALSE, '<', '>');
+                sym->names.num = 0;
+            }
             break;
         case 4:
             sym->result = (char*)function_name;
@@ -1563,6 +1694,8 @@ static BOOL symbol_demangle(struct parsed_symbol* sym)
             sym->stack.elts[0] = sym->stack.elts[1];
         else
             sym->stack.elts[0] = str_printf(sym, "~%s", sym->stack.elts[1]);
+        if (template_args)
+            sym->stack.elts[0] = str_printf(sym, "%s%s", sym->stack.elts[0], template_args);
         /* ctors and dtors don't have return type */
         sym->flags |= UNDNAME_NO_FUNCTION_RETURNS;
         break;
