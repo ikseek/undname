@@ -5,7 +5,7 @@ with open('README.rst') as README:
 
 setup(
     name='undname',
-    version='0.1',
+    version='0.1.1',
     packages=['undname'],
     url='https://github.com/ikseek/undname',
     license='LGPLv2.1',
