@@ -1,5 +1,8 @@
 from setuptools import setup
 
+with open('README.rst') as README:
+    README = README.read()
+
 setup(
     name='undname',
     version='0.1',
@@ -9,7 +12,7 @@ setup(
     author='Igor Kozyrenko',
     author_email='igor@ikseek.com',
     description='CFFI wrapper for wine undname module',
-    long_description=open('README.rst').read(),
+    long_description=README,
     keywords=['undname', 'msvc'],
     setup_requires=["cffi"],
     install_requires=["cffi"],
