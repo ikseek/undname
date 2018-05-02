@@ -17,7 +17,7 @@ setup(
     setup_requires=["cffi"],
     install_requires=["cffi"],
     cffi_modules=["undname/undname_build.py:ffi_builder"],
-    package_data={'undname': ['src/*/*.h']},
+    package_data={'undname': ['src/*.h', 'src/wine/*.h']},
     classifiers=["Development Status :: 4 - Beta",
                  "Topic :: Software Development :: Debuggers",
                  "Programming Language :: Python :: 3.5",
