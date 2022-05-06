@@ -415,10 +415,6 @@ static BOOL get_modifier(struct parsed_symbol *sym, const char **ret, const char
             if (sym->flags & UNDNAME_NO_LEADING_UNDERSCORES)
                 *ptr_modif = *ptr_modif + 2;
         }
-        else
-        {
-            *ptr_modif = "";
-        }
         sym->current++;
     }
     switch (*sym->current++)
