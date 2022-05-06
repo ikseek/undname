@@ -14,7 +14,9 @@ jobs:
             uses: actions/setup-python@v3
             with:
                 python-version: ${{ matrix.python-version }}
-        -   name: Install dependencies and package
-            run: python -m pip install -U pip setuptools wheel && python -m pip install -e .
-        -   name: Run unit tests
-            run: python -m unittest -v tests.test_undname
+        -   name: Install dependencies
+            run: python -m pip install -U pip setuptools wheel pytest
+        -   name: Install Package
+            run: python -m pip install -e .
+        -   name: Run doctests and unit tests
+            run: pytest
