@@ -7,10 +7,32 @@ class UndnameFailure(Exception):
     pass
 
 
-def undname(mangled, name_only=False, leading_underscores=True,
+def undname(mangled: str, name_only=False, leading_underscores=True,
             ms_keywords=True, function_returns=True, allocation_language=True,
             thistype=True, access_specifiers=True, member_type=True,
-            arguments=True, complex_type=True):
+            arguments=True, complex_type=True) -> str:
+    """
+    Demangle MSVC++ linker symbol
+
+    :param mangled: mangled C++ symbol
+    :param name_only: Only report the variable/method name
+    :param leading_underscores: Show __ in calling convention if enabled
+    :param ms_keywords: Disable to not show calling convention at all
+    :param function_returns: Show function/method return value
+    :param allocation_language: Undocumented
+    :param thistype: Undocumented
+    :param access_specifiers: Show access specifier (public/protected/private)
+    :param member_type: Show static/virtual specifier
+    :param arguments: Show method arguments
+    :param complex_type: Undocumented
+    :return: C++ symbol
+
+    Example:
+
+    >>> undname("?xyz@?$abc@V?$def@H@@PAX@@YAXXZ", ms_keywords=False)
+    'void abc<class def<int>,void *>::xyz(void)'
+
+    """
     flags = 0
     if name_only:
         flags += 0x1000
