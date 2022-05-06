@@ -888,7 +888,7 @@ static BOOL demangle_datatype(struct parsed_symbol* sym, struct datatype_t* ct,
                 unsigned                mark = sym->stack.num;
                 const char*             class;
                 const char*             modifier;
-                const char*             ptr_modif;
+                const char*             ptr_modif = NULL;
 
                 sym->current++;
 
@@ -1040,7 +1040,7 @@ static BOOL demangle_datatype(struct parsed_symbol* sym, struct datatype_t* ct,
             }
             else if (*sym->current == 'C')
             {
-                const char *ptr, *ptr_modif;
+                const char *ptr, *ptr_modif = NULL;
 
                 sym->current++;
                 if (!get_modifier(sym, &ptr, &ptr_modif)) goto done;
@@ -1111,7 +1111,7 @@ static BOOL handle_data(struct parsed_symbol* sym)
     const char*         access = NULL;
     const char*         member_type = NULL;
     const char*         modifier = NULL;
-    const char*         ptr_modif;
+    const char*         ptr_modif = NULL;
     struct datatype_t   ct;
     char*               name = NULL;
     BOOL                ret = FALSE;
@@ -1333,7 +1333,7 @@ static BOOL handle_method(struct parsed_symbol* sym, BOOL cast_op)
     if (has_args && (accmem == '$' ||
                 (accmem <= 'X' && (accmem - 'A') % 8 != 2 && (accmem - 'A') % 8 != 3)))
     {
-        const char *ptr_modif;
+        const char *ptr_modif = NULL;
         /* Implicit 'this' pointer */
         /* If there is an implicit this pointer, const modifier follows */
         if (!get_modifier(sym, &modifier, &ptr_modif)) goto done;
