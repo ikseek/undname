@@ -24,7 +24,7 @@ Traceback (most recent call last):
  ...
 undname.UndnameFailure: Failed at...
 
-Strings that doesn't seem to be decorated symbols are left as is
+Strings that don't look like decorated symbols are left as is
 
 >>> undname("main")
 'main'
